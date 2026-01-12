@@ -19,16 +19,23 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 - **Platform:** Web Application (Mobile-responsive).
 - **Input:** Image Upload / Camera capture.
 - **AI Model:** Gemini API (Multimodal: Image -> JSON). Start with Free Tier.
-- **Image Processing:** Crop and enhance user-uploaded photos.
-- **Integration:** Unofficial AnyList API or Browser Automation (Selenium/Playwright).
+- **Image Processing:** Sharp (Node.js) to crop/resize user-uploaded photos.
+- **Integration:** Unofficial Node.js AnyList API (`anylist`).
 
 ## Architecture Decisions
-- **Frontend:** Web interface (React/Next.js or simple HTML/HTMX).
-- **Backend:** Python (FastAPI/Flask) - chosen for strong AI/Image processing libraries.
-- **Database:** (Optional) Simple SQLite to track queue/history if needed.
+- **Frontend:** Web interface (React + Vite + TypeScript).
+- **Backend:** Node.js (Express) - chosen for stable AnyList integration.
+- **Database:** (Optional) Simple JSON file or SQLite for queue/history.
 - **Authentication:** Needed for the Web App? (Maybe simple passkey for family).
+- **Recipe Import Strategy:** "Hybrid" approach. The app creates the recipe via API with all text data. The user manually adds the photo via the AnyList app/web interface (since the API doesn't support photo uploads).
 
 ## Research Items
-- [ ] AnyList unofficial API availability.
+- [x] AnyList unofficial API availability (Node.js library `anylist` is stable).
 - [ ] Gemini API Free tier limits and capabilities.
-- [ ] Image enhancement libraries (OpenCV).
+- [ ] Image enhancement libraries (Sharp for Node.js).
+- [x] Security: Use `.env` for local secrets, AWS SSM Parameter Store for cloud production.
+
+## Next Steps
+1.  Implement Gemini Image-to-JSON integration.
+2.  Set up image upload handling in the backend.
+3.  Build the Frontend UI.
