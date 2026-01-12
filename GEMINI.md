@@ -34,6 +34,7 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 - [ ] Gemini API Free tier limits and capabilities.
 - [ ] Image enhancement libraries (Sharp for Node.js).
 - [x] Security: Use `.env` for local secrets, AWS SSM Parameter Store for cloud production.
+- [x] Vulnerability Analysis: `tough-cookie` (GHSA-72xf-g2v4-qvf3) is flagged in `anylist` dependency, but analysis confirms we are NOT vulnerable because the library does not use `CookieJar` or cookies for authentication (uses Bearer tokens).
 
 ## Next Steps
 1.  Implement Gemini Image-to-JSON integration.

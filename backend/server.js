@@ -33,28 +33,126 @@ const anylistService = require('./anylistService');
 app.post('/api/test-recipe', async (req, res) => {
     try {
         const dummyRecipe = {
-            name: "Test Recipe from Gemini CLI",
-            note: "This was created during the setup of the AnyList Importer project.",
-            ingredients: [
-                "1 cup of enthusiasm",
-                "2 tablespoons of code",
-                "A pinch of AI"
-            ],
-            instructions: [
-                "Initialize the project repository.",
-                "Set up the Node.js backend.",
-                "Call the AnyList API successfully."
-            ],
-            cookTime: 300 // 5 minutes
+            name: "Minimal Test Recipe " + Date.now(), // Unique name
+            ingredients: [],
+            instructions: []
         };
 
+        // Create the recipe
         const result = await anylistService.createRecipe(dummyRecipe);
+        
+        // HARDCODED: "Main Dishes" collection ID from your previous debug output
+        // "Main Dishes" -> 4686dfa9653648a189154fa8578b594c
+        const collectionId = "4686dfa9653648a189154fa8578b594c";
+        
+        try {
+            await anylistService.addRecipeToCollection(result.identifier, collectionId);
+            res.json({ 
+                success: true, 
+                message: "Minimal recipe created and added to Main Dishes!", 
+                recipeId: result.identifier 
+            });
+        } catch (collectionError) {
+             console.error("Failed to add to collection:", collectionError);
+             // Still return success for the recipe creation, but warn about collection
+             res.json({ 
+                success: true, 
+                message: "Recipe created, but failed to add to collection.", 
+                recipeId: result.identifier,
+                collectionError: collectionError.message
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Debug route to list all recipes
+// GET http://localhost:3001/api/debug-recipes
+app.get('/api/debug-recipes', async (req, res) => {
+    try {
+        if (!anylistService.isAuthenticated) {
+            await anylistService.login();
+        }
+        
+        // Force a refresh of recipes from the server
+        const recipes = await anylistService.anylist.getRecipes(true); 
+        
+        // Return count and list of names/IDs
+        const recipeList = recipes.map(r => ({
+            name: r.name,
+            id: r.identifier
+        }));
+
         res.json({ 
-            success: true, 
-            message: "Recipe created!", 
-            recipeId: result.identifier 
+            success: true,
+            totalCount: recipes.length, 
+            recipes: recipeList 
         });
     } catch (error) {
+        console.error("Debug Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Debug route to list recipe collections
+// GET http://localhost:3001/api/debug-collections
+app.get('/api/debug-collections', async (req, res) => {
+    try {
+        if (!anylistService.isAuthenticated) {
+            await anylistService.login();
+        }
+        
+        // Refresh user data to get collections
+        const userData = await anylistService.anylist._getUserData(true);
+        const collections = userData.recipeDataResponse.recipeCollections;
+
+        res.json({ 
+            success: true,
+            count: collections.length, 
+            collections: collections.map(c => ({
+                name: c.name,
+                id: c.identifier
+            }))
+        });
+    } catch (error) {
+        console.error("Debug Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Debug route to inspect a specific recipe
+// GET http://localhost:3001/api/debug-recipe/:id
+app.get('/api/debug-recipe/:id', async (req, res) => {
+    try {
+        if (!anylistService.isAuthenticated) {
+            await anylistService.login();
+        }
+        
+        const recipes = await anylistService.anylist.getRecipes();
+        const recipe = recipes.find(r => r.identifier === req.params.id);
+
+        if (!recipe) {
+            return res.status(404).json({ error: "Recipe not found" });
+        }
+
+        // Return the raw recipe object to see all its properties
+        res.json({ 
+            success: true,
+            recipe: recipe 
+        });
+    } catch (error) {
+        console.error("Debug Error:", error);
         res.status(500).json({ 
             success: false, 
             error: error.message 
