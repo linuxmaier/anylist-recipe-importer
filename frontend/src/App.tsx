@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Upload, Check, Trash2, Plus, ArrowLeft, Save, Loader2, ChefHat } from 'lucide-react';
-import { Recipe, Collection, ApiScanResponse, ApiCollectionResponse } from './types';
+import { Camera, Trash2, Plus, ArrowLeft, Save, Loader2, ChefHat } from 'lucide-react';
+import type { Recipe, Collection, ApiScanResponse, ApiCollectionResponse } from './types';
 import './App.css';
 
 const API_BASE = 'http://localhost:3001/api';
