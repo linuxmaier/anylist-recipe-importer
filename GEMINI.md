@@ -31,13 +31,13 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 
 ## Research Items
 - [x] AnyList unofficial API availability (Node.js library `anylist` is stable).
-- [x] Gemini API: Using `gemini-1.5-flash` for free-tier stability.
+- [x] Gemini API: Using `gemini-2.5-flash` for high-performance extraction.
 - [ ] Image enhancement libraries (Sharp for Node.js).
 - [x] Security: Use `.env` for local secrets, AWS SSM Parameter Store for cloud production.
 - [x] Vulnerability Analysis: `tough-cookie` (GHSA-72xf-g2v4-qvf3) is flagged in `anylist` dependency, but analysis confirms we are NOT vulnerable because the library does not use `CookieJar` or cookies for authentication (uses Bearer tokens).
 
 ## Current Issues / Work-in-Progress
-- **Model Stabilization:** Testing various Gemini model versions (1.5, 2.0, 2.5) for free-tier quota and reliability. Settled on `gemini-1.5-flash` for now.
+- **Model Selection:** Settled on `gemini-2.5-flash` as it provides successful extraction and reasoning capabilities.
 - **AnyList Persistence:** Fixed a bug where recipes weren't showing in the UI by manually setting the `uid` and adding recipes to the "All Recipes" collection.
 - **Frontend Refinement:** Finalizing the React UI and fixing TypeScript build errors.
 

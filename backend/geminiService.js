@@ -53,9 +53,9 @@ class GeminiService {
         }
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         
-        // Use gemini-1.5-flash for maximum stability on the free tier
+        // Use gemini-2.5-flash as it is confirmed to work for our extraction needs
         this.model = this.genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: recipeSchema,
