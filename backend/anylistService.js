@@ -76,7 +76,8 @@ class AnyListService {
                 prepTime: recipeData.prepTime || 0,
                 servings: recipeData.servings || "",
                 preparationSteps: recipeData.instructions || [],
-                ingredients: formattedIngredients
+                ingredients: formattedIngredients,
+                creationTimestamp: Math.floor(Date.now() / 1000) // Set current time for sorting
             };
 
             // Create and save the recipe

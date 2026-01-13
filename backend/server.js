@@ -25,8 +25,82 @@ app.use(express.json());
 
 // Import our custom services
 const anylistService = require('./anylistService');
+const geminiService = require('./geminiService');
+
+// Configure Multer for memory storage (uploaded files are held in RAM)
+const multer = require('multer');
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // Limit to 10MB
+});
 
 // --- ROUTES ---
+
+// Route to scan a recipe image and return structured JSON
+// POST http://localhost:3001/api/scan-recipe
+app.post('/api/scan-recipe', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "No image file provided." 
+            });
+        }
+
+        console.log(`Received image scan request: ${req.file.originalname} (${req.file.size} bytes)`);
+
+        // Send to Gemini
+        const recipeData = await geminiService.extractRecipeFromImage(
+            req.file.buffer, 
+            req.file.mimetype
+        );
+
+        console.log("Gemini extraction successful:", recipeData.name);
+
+        // Return the extracted data to the frontend for review
+        res.json({ 
+            success: true, 
+            recipe: recipeData 
+        });
+
+    } catch (error) {
+        console.error("Scan Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Route to create a real recipe (after review)
+// POST http://localhost:3001/api/create-recipe
+app.post('/api/create-recipe', async (req, res) => {
+    try {
+        const recipeData = req.body;
+        
+        // Basic validation
+        if (!recipeData.name || !recipeData.ingredients) {
+             return res.status(400).json({ error: "Missing required recipe fields" });
+        }
+
+        console.log(`Creating verified recipe: ${recipeData.name}`);
+
+        const result = await anylistService.createRecipe(recipeData);
+
+        res.json({ 
+            success: true, 
+            message: "Recipe created successfully!", 
+            recipeId: result.identifier 
+        });
+
+    } catch (error) {
+        console.error("Create Recipe Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
 
 // Test route to create a dummy recipe in AnyList
 // POST http://localhost:3001/api/test-recipe

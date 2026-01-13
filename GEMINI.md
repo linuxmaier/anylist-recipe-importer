@@ -23,7 +23,7 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 - **Integration:** Unofficial Node.js AnyList API (`anylist`).
 
 ## Architecture Decisions
-- **Frontend:** Web interface (React + Vite + TypeScript).
+- **Frontend:** Web interface (React + Vite + TypeScript + Lucide React for icons).
 - **Backend:** Node.js (Express) - chosen for stable AnyList integration.
 - **Database:** (Optional) Simple JSON file or SQLite for queue/history.
 - **Authentication:** Needed for the Web App? (Maybe simple passkey for family).
