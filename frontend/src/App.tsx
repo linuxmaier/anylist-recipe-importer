@@ -3,10 +3,12 @@ import { Camera, Trash2, Plus, ArrowLeft, Save, Loader2, ChefHat } from 'lucide-
 import type { Recipe, Collection, ApiScanResponse, ApiCollectionResponse } from './types';
 import './App.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api';
 
 function App() {
   // State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [password, setPassword] = useState('');
   const [step, setStep] = useState<'upload' | 'review'>('upload');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,20 +20,57 @@ function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch collections on mount
+  // Check auth on mount
   useEffect(() => {
-    fetch(`${API_BASE}/debug-collections`)
-      .then(res => res.json())
-      .then((data: ApiCollectionResponse) => {
-        if (data.success) {
-          setCollections(data.collections);
-          // Default to "Main Dishes" if found
-          const mainDishes = data.collections.find(c => c.name.toLowerCase().includes('main dishes'));
-          if (mainDishes) setSelectedCollection(mainDishes.id);
-        }
+    fetch(`${API_BASE}/check-auth`, { credentials: 'include' })
+      .then(res => {
+        if (res.ok) setIsAuthenticated(true);
+        else setIsAuthenticated(false);
       })
-      .catch(err => console.error("Failed to load collections:", err));
+      .catch(() => setIsAuthenticated(false));
   }, []);
+
+  // Fetch collections when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch(`${API_BASE}/debug-collections`, { credentials: 'include' })
+        .then(res => res.json())
+        .then((data: ApiCollectionResponse) => {
+          if (data.success) {
+            setCollections(data.collections);
+            const mainDishes = data.collections.find(c => c.name.toLowerCase().includes('main dishes'));
+            if (mainDishes) setSelectedCollection(mainDishes.id);
+          }
+        })
+        .catch(err => console.error("Failed to load collections:", err));
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('Connection failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle File Selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +97,7 @@ function App() {
       const response = await fetch(`${API_BASE}/scan-recipe`, {
         method: 'POST',
         body: formData,
+        credentials: 'include'
       });
 
       const data: ApiScanResponse = await response.json();
@@ -88,6 +128,7 @@ function App() {
           ...recipe,
           collectionId: selectedCollection
         }),
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -144,7 +185,32 @@ function App() {
       {error && <div className="status-message status-error">{error}</div>}
       {success && <div className="status-message status-success">{success}</div>}
 
-      {step === 'upload' ? (
+      {isAuthenticated === null ? (
+        <div className="card" style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ margin: '20px auto' }}></div>
+          <p>Checking session...</p>
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="card">
+          <form onSubmit={handleLogin}>
+            <h3>Family Access</h3>
+            <p>Please enter the shared family password to continue.</p>
+            <div className="form-group">
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? <Loader2 className="spinner" /> : 'Login'}
+            </button>
+          </form>
+        </div>
+      ) : step === 'upload' ? (
         <div className="card">
           <input 
             type="file" 

@@ -131,7 +131,7 @@ class AnyListService {
         const collection = new RecipeCollection(rawCollection, {
             client: this.anylist.client,
             protobuf: this.anylist.protobuf,
-            uid: this.anylist._userData.userId,
+            uid: this.anylist.uid,
             recipeDataId: this.anylist.recipeDataId
         });
 

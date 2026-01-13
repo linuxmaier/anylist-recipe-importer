@@ -96,8 +96,21 @@ class GeminiService {
             // The output is guaranteed to be JSON due to responseMimeType config
             return JSON.parse(text);
         } catch (error) {
-            console.error("Gemini API Error:", error);
-            throw new Error(`Failed to process image with Gemini: ${error.message}`);
+            console.error("Gemini API Error details:", error);
+            
+            let message = "An unexpected error occurred while processing the image.";
+            
+            if (error.status === 429 || error.message?.includes('429')) {
+                message = "AI service is busy (rate limit reached). Please wait a minute and try again.";
+            } else if (error.message?.includes('safety')) {
+                message = "The image was flagged by safety filters. Please try a clearer photo of just the recipe.";
+            } else if (error.message?.includes('API key')) {
+                message = "Invalid Gemini API key. Please check your backend configuration.";
+            } else if (error.message) {
+                message = `AI Error: ${error.message}`;
+            }
+            
+            throw new Error(message);
         }
     }
 }

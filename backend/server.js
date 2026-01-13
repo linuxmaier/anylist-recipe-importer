@@ -1,27 +1,69 @@
 // Import necessary libraries
 // 'express' is the web framework (like FastAPI/Flask in Python).
 const express = require('express');
-
-// 'cors' allows our frontend (running on a different port) to talk to this backend.
 const cors = require('cors');
-
-// 'dotenv' loads environment variables from a .env file (API keys, passwords).
+const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-// Initialize the Express application
 const app = express();
-
-// Define the port to run on (default to 3001 to avoid conflict with React's default 3000)
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'anylist-import-secret-key';
 
 // --- MIDDLEWARE ---
-// Middleware functions run before your routes. They process the incoming request.
 
-// Enable CORS for all requests (allows your React app to hit this API)
-app.use(cors());
+const allowedOrigins = [
+    'http://localhost:5173', // Standard local dev
+];
 
-// Parse incoming JSON requests
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Allow localhost for browser testing on the same machine
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
+        }
+
+        // Allow local network IPs for mobile testing during development
+        // This regex matches http://192.168.X.X:5173, http://10.X.X.X:5173, etc.
+        const localNetworkRegex = /^(http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))\d{1,3}\.\d{1,3}):5173$/;
+        if (process.env.NODE_ENV !== 'production' && localNetworkRegex.test(origin)) {
+            return callback(null, true);
+        }
+
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
+    },
+    credentials: true // Allow cookies
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// Rate limiter for login attempts: 5 attempts per 15 minutes
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { error: "Too many login attempts. Please try again in 15 minutes." }
+});
+
+// Authentication middleware
+const authenticate = (req, res, next) => {
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+        return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+        jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (err) {
+        res.status(401).json({ error: "Invalid or expired session" });
+    }
+};
 
 // Import our custom services
 const anylistService = require('./anylistService');
@@ -36,9 +78,47 @@ const upload = multer({
 
 // --- ROUTES ---
 
+// Login route with rate limiting
+app.post('/api/login', loginLimiter, (req, res) => {
+    const { password } = req.body;
+    const expectedPassword = process.env.SHARED_PASSWORD;
+
+    if (!expectedPassword) {
+        return res.status(500).json({ error: "Server security not configured. Please set SHARED_PASSWORD." });
+    }
+
+    if (password === expectedPassword) {
+        // Create a token that expires in 30 days
+        const token = jwt.sign({ authenticated: true }, JWT_SECRET, { expiresIn: '30d' });
+        
+        // Set as an HttpOnly cookie
+        res.cookie('auth_token', token, {
+            httpOnly: true,
+            secure: false, // Set to true in production with HTTPS
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: "Incorrect password" });
+    }
+});
+
+// Check if current session is valid
+app.get('/api/check-auth', authenticate, (req, res) => {
+    res.json({ authenticated: true });
+});
+
+// Logout route
+app.post('/api/logout', (req, res) => {
+    res.clearCookie('auth_token');
+    res.json({ success: true });
+});
+
 // Route to scan a recipe image and return structured JSON
 // POST http://localhost:3001/api/scan-recipe
-app.post('/api/scan-recipe', upload.single('image'), async (req, res) => {
+app.post('/api/scan-recipe', authenticate, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ 
@@ -74,7 +154,7 @@ app.post('/api/scan-recipe', upload.single('image'), async (req, res) => {
 
 // Route to create a real recipe (after review)
 // POST http://localhost:3001/api/create-recipe
-app.post('/api/create-recipe', async (req, res) => {
+app.post('/api/create-recipe', authenticate, async (req, res) => {
     try {
         const recipeData = req.body;
         
@@ -86,6 +166,17 @@ app.post('/api/create-recipe', async (req, res) => {
         console.log(`Creating verified recipe: ${recipeData.name}`);
 
         const result = await anylistService.createRecipe(recipeData);
+
+        // If a collection ID was provided, add it to that collection too
+        if (recipeData.collectionId) {
+            try {
+                await anylistService.addRecipeToCollection(result.identifier, recipeData.collectionId);
+                console.log(`Added to collection: ${recipeData.collectionId}`);
+            } catch (collectionError) {
+                console.error("Failed to add to user-selected collection:", collectionError);
+                // We don't fail the whole request since the recipe WAS created in "All Recipes"
+            }
+        }
 
         res.json({ 
             success: true, 
@@ -104,7 +195,7 @@ app.post('/api/create-recipe', async (req, res) => {
 
 // Test route to create a dummy recipe in AnyList
 // POST http://localhost:3001/api/test-recipe
-app.post('/api/test-recipe', async (req, res) => {
+app.post('/api/test-recipe', authenticate, async (req, res) => {
     try {
         const dummyRecipe = {
             name: "Minimal Test Recipe " + Date.now(), // Unique name
@@ -147,7 +238,7 @@ app.post('/api/test-recipe', async (req, res) => {
 
 // Debug route to list all recipes
 // GET http://localhost:3001/api/debug-recipes
-app.get('/api/debug-recipes', async (req, res) => {
+app.get('/api/debug-recipes', authenticate, async (req, res) => {
     try {
         if (!anylistService.isAuthenticated) {
             await anylistService.login();
@@ -178,7 +269,7 @@ app.get('/api/debug-recipes', async (req, res) => {
 
 // Debug route to list recipe collections
 // GET http://localhost:3001/api/debug-collections
-app.get('/api/debug-collections', async (req, res) => {
+app.get('/api/debug-collections', authenticate, async (req, res) => {
     try {
         if (!anylistService.isAuthenticated) {
             await anylistService.login();
@@ -207,7 +298,7 @@ app.get('/api/debug-collections', async (req, res) => {
 
 // Debug route to inspect a specific recipe
 // GET http://localhost:3001/api/debug-recipe/:id
-app.get('/api/debug-recipe/:id', async (req, res) => {
+app.get('/api/debug-recipe/:id', authenticate, async (req, res) => {
     try {
         if (!anylistService.isAuthenticated) {
             await anylistService.login();
