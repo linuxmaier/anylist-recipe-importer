@@ -59,9 +59,23 @@ The backend server requires several secret keys and credentials to function.
 
 ## Running for Local Development
 
+### Option 1: Using Docker (Recommended)
+
+This is the easiest way to run the app, as it handles all the setup for you.
+
+1.  **Start the application:**
+    ```bash
+    docker compose up --build
+    ```
+2.  **Open your browser:**
+    -   Frontend: `http://localhost:5173`
+    -   Backend API: `http://localhost:3001`
+
+### Option 2: Running Manually (Without Docker)
+
 You will need to run two separate processes in two separate terminal windows.
 
-### Terminal 1: Start the Backend
+#### Terminal 1: Start the Backend
 
 ```bash
 # Navigate to the backend directory

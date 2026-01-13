@@ -39,9 +39,9 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 
 ## Next Steps
 
-1. Verify end-to-end flow from a physical mobile device (UI testing).
+1. [x] Verify end-to-end flow from a physical mobile device (UI testing).
 
-2. Setup Docker locally once installed and verify containerized networking.
+2. [x] Setup Docker locally once installed and verify containerized networking.
 
 3. Deploy to a cloud provider with HTTPS (required for secure cookies).
 
