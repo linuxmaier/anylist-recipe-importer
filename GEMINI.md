@@ -42,6 +42,8 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 - **Frontend Refinement:** Finalizing the React UI and fixing TypeScript build errors.
 
 ## Next Steps
-1.  Verify end-to-end flow from the browser.
-2.  Add image cropping/enhancement using Sharp.
-3.  Add family authentication (simple passkey).
+1. Verify end-to-end flow from the browser.
+2. Add image cropping/enhancement using Sharp.
+3. Add family authentication (simple passkey).
+4. Get the Docker format working and test in the cloud.
+5. Implement proper error handling and communication for Gemini API rate limiting.
