@@ -9,6 +9,7 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
     - Transcribe text from images.
     - Normalize text (Title Case, formatting fractions).
     - Extract fields: Title, Ingredients, Instructions, Cook Time, Notes/Substitutions.
+    - **Source Detection:** Attempt to identify the recipe source (e.g., book title, website) or provide a field for manual entry.
     - Categorize recipes automatically.
 - **AnyList Sync:** Automate entry creation.
 
@@ -44,6 +45,8 @@ A web-based tool to digitize physical recipe books and import them into AnyList.
 2. [x] Setup Docker locally once installed and verify containerized networking.
 
 3. Deploy to a cloud provider with HTTPS (required for secure cookies).
+
+4. Implement "Source Detection" field: AI extraction or manual entry for the recipe's origin.
 
 
 
